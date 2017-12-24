@@ -19,5 +19,6 @@ func NewServer(addr string) *Server {
 	server := new(Server)
 	server.srv = new(http.Server)
 	server.srv.Addr = addr
+	server.srv.Handler = apiHandler()
 	return server
 }

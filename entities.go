@@ -1,16 +1,19 @@
 package refract
 
+type TrackType int
+
+const (
+	_ TrackType = iota
+	TrackTypeYoutube
+)
+
 // A Track represents a video or a song;
 type Track struct {
-	ID       uint64 `json:"id"`
-	Title    string `json:"title"`
-	Duration uint64 `json:"duration"`
-}
-
-// A YoutubeTrack represents a youtube video
-type YoutubeTrack struct {
-	Track
-	URL string `json:"url"`
+	ID       uint64    `json:"id"`
+	Title    string    `json:"title"`
+	Duration uint64    `json:"duration"`
+	URL      string    `json:"url"`
+	Type     TrackType `json:"trackType"`
 }
 
 // A Team represents a slack team
