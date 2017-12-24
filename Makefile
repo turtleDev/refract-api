@@ -3,4 +3,4 @@ VERSION=$(shell git describe --tags 2>/dev/null || git describe --always 2>/dev/
 all: build
 
 build:
-	go build -ldflags "-X main.Version=${VERSION}" ./cmd/refract-api-server
+	go build -ldflags "-X main.version=${VERSION}" ./cmd/refract-api-server

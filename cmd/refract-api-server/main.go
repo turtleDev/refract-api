@@ -10,7 +10,7 @@ import (
 func main() {
 	addr := fmt.Sprintf("%s:%s", host, port)
 	server := web.NewServer(addr)
-	log.Println("Refract API Server", Version)
+	log.Println("Refract API Server", version)
 	log.Println("starting on", addr)
 	log.Fatalln(server.Start())
 }
