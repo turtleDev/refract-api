@@ -1,8 +1,14 @@
 package inmemory
 
 import (
+	"errors"
+
 	refract "github.com/turtledev/refract-api"
 	"github.com/turtledev/refract-api/db"
+)
+
+var (
+	errInvalidID = errors.New("ID must be non-zero")
 )
 
 type TrackRepository struct {
@@ -52,4 +58,18 @@ func (t *TrackRepository) Create(track *refract.Track) (uint64, error) {
 	}
 	t.tracks[track.ID] = track
 	return track.ID, nil
+}
+
+func (t *TrackRepository) Update(id uint64, track *refract.Track) error {
+	if id == 0 {
+		return errInvalidID
+	}
+	// should this be legal?
+	track.ID = id
+	_, found := t.tracks[id]
+	if !found {
+		return db.ErrNotFound
+	}
+	t.tracks[id] = track
+	return nil
 }

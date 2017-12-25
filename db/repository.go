@@ -9,4 +9,5 @@ type TrackRepository interface {
 	GetAll() []*refract.Track
 	Delete(uint64) error
 	Create(*refract.Track) (uint64, error)
+	Update(uint64, *refract.Track) error
 }

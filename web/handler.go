@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -13,36 +12,9 @@ import (
 )
 
 var trackRepository db.TrackRepository
-
-func marshalJSON(i interface{}) string {
-	raw, err := json.Marshal(i)
-	if err != nil {
-		panic(err)
-	}
-	return string(raw)
-}
-
-func inferValue(i interface{}) string {
-	switch v := i.(type) {
-	case string:
-		return v
-	case error:
-		return v.Error()
-	default:
-		return fmt.Sprint(v)
-	}
-}
-
-func writeJSON(w http.ResponseWriter, i interface{}) {
-	w.Header().Set("content-type", "application/json")
-	fmt.Fprint(w, marshalJSON(i))
-}
-
-func writeErrorJSON(w http.ResponseWriter, i interface{}, status int) {
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(status)
-	res := map[string]string{"error": inferValue(i)}
-	fmt.Fprint(w, marshalJSON(res))
+var statusMap = errorStatusMap{
+	db.ErrNotFound:      http.StatusNotFound,
+	db.ErrAlreadyExists: http.StatusBadRequest,
 }
 
 func apiHandler() http.Handler {
@@ -55,6 +27,7 @@ func apiHandler() http.Handler {
 	router.Path("/tracks").Methods("POST").HandlerFunc(createTrack(trackRepository))
 	router.Path("/tracks/{id}").Methods("GET").HandlerFunc(getTrackByID(trackRepository))
 	router.Path("/tracks/{id}").Methods("DELETE").HandlerFunc(deleteTrackByID(trackRepository))
+	router.Path("/tracks/{id}").Methods("POST", "PUT").Handler(updateTrack(trackRepository))
 	return router
 }
 
@@ -75,13 +48,7 @@ func getTrackByID(repo db.TrackRepository) http.HandlerFunc {
 		}
 		track, err := repo.Get(uint64(id))
 		if err != nil {
-			var status int
-			if err == db.ErrNotFound {
-				status = http.StatusNotFound
-			} else {
-				status = http.StatusBadRequest
-			}
-			writeErrorJSON(w, err, status)
+			writeErrorJSON(w, err, statusMap.StatusForError(err))
 			return
 		}
 		writeJSON(w, track)
@@ -100,16 +67,10 @@ func deleteTrackByID(repo db.TrackRepository) http.HandlerFunc {
 
 		err = repo.Delete(uint64(id))
 		if err != nil {
-			var status int
-			if err == db.ErrNotFound {
-				status = http.StatusNotFound
-			} else {
-				status = http.StatusBadRequest
-			}
-			writeErrorJSON(w, err, status)
+			writeErrorJSON(w, err, statusMap.StatusForError(err))
 			return
 		}
-		writeJSON(w, map[string]string{"status": "success"})
+		writeJSON(w, JSONResponse{"status": "success"})
 	}
 }
 
@@ -125,6 +86,30 @@ func createTrack(repo db.TrackRepository) http.HandlerFunc {
 			writeErrorJSON(w, err, http.StatusBadRequest)
 			return
 		}
-		writeJSON(w, map[string]string{"status": "success", "id": strconv.Itoa(int(id))})
+		writeJSON(w, JSONResponse{"status": "success", "id": strconv.Itoa(int(id))})
+	}
+}
+
+func updateTrack(repo db.TrackRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		idStr := vars["id"]
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			writeErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
+
+		track := new(refract.Track)
+		if err := json.NewDecoder(r.Body).Decode(track); err != nil {
+			writeErrorJSON(w, err, http.StatusBadRequest)
+			return
+		}
+
+		err = repo.Update(uint64(id), track)
+		if err != nil {
+			writeErrorJSON(w, err, statusMap.StatusForError(err))
+		}
+		writeJSON(w, JSONResponse{"status": "success", "id": strconv.Itoa(int(id))})
 	}
 }
