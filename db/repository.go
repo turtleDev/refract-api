@@ -11,3 +11,7 @@ type TrackRepository interface {
 	Create(*refract.Track) (uint64, error)
 	Update(uint64, *refract.Track) error
 }
+
+type TeamRepository interface {
+	GetAll() []*refract.Team
+}
