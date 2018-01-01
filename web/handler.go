@@ -5,13 +5,18 @@ import (
 	"net/http"
 	"strconv"
 
+	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	refract "github.com/turtledev/refract-api"
 	"github.com/turtledev/refract-api/db"
 	"github.com/turtledev/refract-api/db/inmemory"
 )
 
-var trackRepository db.TrackRepository
+var (
+	trackRepository db.TrackRepository
+	teamRepository  db.TeamRepository
+)
+
 var statusMap = errorStatusMap{
 	db.ErrNotFound:      http.StatusNotFound,
 	db.ErrAlreadyExists: http.StatusBadRequest,
@@ -20,6 +25,10 @@ var statusMap = errorStatusMap{
 func apiHandler() http.Handler {
 	// initialise the repository
 	trackRepository = new(inmemory.TrackRepository)
+	teamRepository = new(inmemory.TeamRepository)
+
+	// can return an error
+	teamRepository.Create(&refract.Team{Name: "devs and hackers", Domain: "dev-s"})
 
 	// initialise routes and handlers
 	router := mux.NewRouter().PathPrefix("/v0").Subrouter()
@@ -28,7 +37,11 @@ func apiHandler() http.Handler {
 	router.Path("/tracks/{id}").Methods("GET").HandlerFunc(getTrackByID(trackRepository))
 	router.Path("/tracks/{id}").Methods("DELETE").HandlerFunc(deleteTrackByID(trackRepository))
 	router.Path("/tracks/{id}").Methods("POST", "PUT").Handler(updateTrack(trackRepository))
-	return router
+
+	router.Path("/teams").Methods("GET").HandlerFunc(getAllTeams(teamRepository))
+
+	handler := gorillaHandlers.CORS()(router)
+	return handler
 }
 
 func getAllTracks(repo db.TrackRepository) http.HandlerFunc {
@@ -111,5 +124,11 @@ func updateTrack(repo db.TrackRepository) http.HandlerFunc {
 			writeErrorJSON(w, err, statusMap.StatusForError(err))
 		}
 		writeJSON(w, JSONResponse{"status": "success", "id": strconv.Itoa(int(id))})
+	}
+}
+
+func getAllTeams(repo db.TeamRepository) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, repo.GetAll())
 	}
 }

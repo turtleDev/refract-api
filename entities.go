@@ -19,6 +19,7 @@ type Track struct {
 // A Team represents a slack team
 // there will usually only be one slack team.
 type Team struct {
-	Name   string `name:"string"`
-	Domain string `domain:"string"`
+	ID     uint64 `json:"id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }

@@ -45,4 +45,23 @@ func (t *TrackRepository) Update(id uint64, track *refract.Track) error {
 }
 
 type TeamRepository struct {
+	store abstractStore
+}
+
+func (t *TeamRepository) GetAll() []*refract.Team {
+	dataset := t.store.GetAll()
+	teams := make([]*refract.Team, 0)
+	for _, data := range dataset {
+		// can panic
+		team := data.(*refract.Team)
+		teams = append(teams, team)
+	}
+	return teams
+}
+
+func (t *TeamRepository) Create(team *refract.Team) (uint64, error) {
+	if team.ID == 0 {
+		team.ID = t.store.NextID()
+	}
+	return team.ID, t.store.Create(team.ID, team)
 }
